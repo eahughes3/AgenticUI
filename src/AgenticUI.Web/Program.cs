@@ -15,25 +15,36 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+var openai = builder.AddAzureOpenAIClient(connectionName: "chat")
+    .AddChatClient("chat");
+
 builder.Services.AddSingleton<AgentCatalog>(services =>
 {
-    var configuration = services.GetRequiredService<IConfiguration>();
-    var endpoint = configuration["CHAT_URI"];
-    var deployment = configuration["CHAT_MODELNAME"];
-    if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(deployment))
-    {
-        throw new InvalidOperationException(
-            "Configure CHAT_URI and CHAT_MODELNAME on the Blazor host, or reference the Foundry chat deployment from Aspire.");
-    }
-
-    BearerTokenPolicy tokenPolicy = new(new DefaultAzureCredential(), "https://ai.azure.com/.default");
-#pragma warning disable OPENAI001 // Preserve the existing Foundry bearer-authenticated OpenAI client.
-    var client = new ChatClient(deployment, tokenPolicy,
-        new OpenAIClientOptions { Endpoint = new Uri($"{endpoint}openai/v1/") });
-#pragma warning restore OPENAI001
-    var chatClient = client.AsIChatClient();
+    var chatClient = services.GetRequiredService<IChatClient>();
     return new AgentCatalog(chatClient, chatClient);
 });
+
+
+//builder.Services.AddSingleton<AgentCatalog>(services =>
+//{
+//    var configuration = services.GetRequiredService<IConfiguration>();
+//    var endpoint = configuration["CHAT_URI"];
+//    var deployment = configuration["CHAT_MODELNAME"];
+//    if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(deployment))
+//    {
+//        throw new InvalidOperationException(
+//            "Configure CHAT_URI and CHAT_MODELNAME on the Blazor host, or reference the Foundry chat deployment from Aspire.");
+//    }
+
+//    BearerTokenPolicy tokenPolicy = new(new DefaultAzureCredential(), "https://ai.azure.com/.default");
+//#pragma warning disable OPENAI001 // Preserve the existing Foundry bearer-authenticated OpenAI client.
+//    var client = new ChatClient(deployment, tokenPolicy,
+//        new OpenAIClientOptions { Endpoint = new Uri($"{endpoint}openai/v1/") });
+//#pragma warning restore OPENAI001
+//    var chatClient = client.AsIChatClient();
+//    return new AgentCatalog(chatClient, chatClient);
+//});
+
 builder.Services.AddScoped<LocalAgentConnection>();
 
 var app = builder.Build();
