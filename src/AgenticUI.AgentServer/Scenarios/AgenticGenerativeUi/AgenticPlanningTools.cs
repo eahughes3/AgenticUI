@@ -18,7 +18,8 @@ internal static class AgenticPlanningTools
     public static async Task<List<JsonPatchOperation>> UpdatePlanStepAsync(
         [Description("The index of the step to update.")] int index,
         [Description("The new description for the step (optional).")] string? description = null,
-        [Description("The new status for the step (optional).")] StepStatus? status = null)
+        [Description("The new status for the step (optional).")] StepStatus? status = null,
+        CancellationToken cancellationToken = default)
     {
         var changes = new List<JsonPatchOperation>();
 
@@ -44,7 +45,7 @@ internal static class AgenticPlanningTools
             });
         }
 
-        await Task.Delay(1000).ConfigureAwait(false);
+        await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
 
         return changes;
     }

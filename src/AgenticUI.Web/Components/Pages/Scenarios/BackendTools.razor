@@ -1,5 +1,5 @@
 @page "/backend-tools"
-@inject AgentServerConnection Agents
+@inject LocalAgentConnection Agents
 @implements IDisposable
 
 <PageTitle>Backend tools</PageTitle>
@@ -9,8 +9,8 @@
         <h1>Backend tools</h1>
         <p>
             The agent calls a <strong>server-side</strong> tool (<code>get_weather</code>). The tool
-            runs on the agent server; its call and result stream to the browser as AG-UI
-            <code>TOOL_CALL_*</code> events. Here a custom <code>&lt;BlockRenderer&gt;</code> turns the
+            runs inside the Blazor server; its native call and result updates drive the UI.
+            Here a custom <code>&lt;BlockRenderer&gt;</code> turns the
             <code>get_weather</code> invocation into a weather card instead of raw JSON.
         </p>
     </div>
@@ -46,9 +46,17 @@
 
     protected override void OnInitialized()
     {
-        _chatClient = Agents.CreateChatClient("/backend_tool_rendering");
-        _agent = new UIAgent(_chatClient, options => options.AddGeneratedToolBlocks());
+        _chatClient = Agents.CreateChatClient(AgentScenario.BackendTools);
+        _agent = new UIAgent(_chatClient, options =>
+        {
+            options.Thread = new LocalConversationThread();
+            options.AddGeneratedToolBlocks();
+        });
     }
 
-    public void Dispose() => (_chatClient as IDisposable)?.Dispose();
+    public void Dispose()
+    {
+        _agent.Dispose();
+        (_chatClient as IDisposable)?.Dispose();
+    }
 }

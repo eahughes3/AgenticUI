@@ -1,6 +1,6 @@
 @page "/predictive-state"
 @using System.Text.Json
-@inject AgentServerConnection Agents
+@inject LocalAgentConnection Agents
 @inject ILoggerFactory LoggerFactory
 @implements IAsyncDisposable
 
@@ -29,21 +29,21 @@
 
     protected override void OnInitialized()
     {
-        _chatClient = Agents.CreateChatClient("/predictive_state");
         Reset();
     }
 
     private UIAgent<DocumentState> CreateAgent(DocumentState initialState)
     {
-        var threadId = Guid.NewGuid().ToString("N");
+        var thread = new LocalConversationThread();
 
         return new UIAgent<DocumentState>(_chatClient, options =>
         {
+            options.Thread = thread;
             options.ChatOptions = new ChatOptions
             {
                 RawRepresentationFactory = _ => new RunAgentInput
                 {
-                    ThreadId = threadId,
+                    ThreadId = thread.ThreadId,
                     State = JsonSerializer.SerializeToElement(
                         _agent.State.Value,
                         s_jsonOptions),
@@ -54,16 +54,26 @@
                 var proposal = context.Update.Contents
                     .OfType<FunctionCallContent>()
                     .FirstOrDefault(call => call.Name == "propose_document");
-                if (proposal is null ||
-                    proposal.Arguments?.TryGetValue("document", out var value) != true ||
-                    value is not JsonElement { ValueKind: JsonValueKind.String } element)
+                if (proposal is null)
                 {
                     return;
                 }
 
+                if (proposal.Arguments?.TryGetValue("document", out var value) != true)
+                {
+                    throw new InvalidOperationException("The document proposal is missing its document argument.");
+                }
+
+                var document = value switch
+                {
+                    string text => text,
+                    JsonElement { ValueKind: JsonValueKind.String } element => element.GetString()
+                        ?? throw new InvalidOperationException("The document proposal must contain a string."),
+                    _ => throw new InvalidOperationException("The document proposal must contain a string.")
+                };
                 context.SetPredictiveState(new DocumentState
                 {
-                    Document = element.GetString()!,
+                    Document = document,
                 });
             };
             options.RegisterUIAction(AIFunctionFactory.Create(
@@ -100,8 +110,10 @@
 
     private void Reset()
     {
-        var nextAgent = CreateAgent(new DocumentState());
         _agent?.Dispose();
+        (_chatClient as IDisposable)?.Dispose();
+        _chatClient = Agents.CreateChatClient(AgentScenario.PredictiveState);
+        var nextAgent = CreateAgent(new DocumentState());
         _agent = nextAgent;
     }
 

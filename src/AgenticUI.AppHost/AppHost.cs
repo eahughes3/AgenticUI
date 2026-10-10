@@ -23,15 +23,9 @@ var foundry = builder.AddFoundry("aiFoundry")
 
 var chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt56Luna);
 
-// The AG-UI agent server: hosts one AG-UI endpoint per demo scenario (MAF + AG-UI C# SDK).
-var agentServer = builder.AddProject<Projects.AgenticUI_AgentServer>("agentserver")
+// Blazor hosts the agents in-process and consumes the same Foundry deployment directly.
+builder.AddProject<Projects.AgenticUI_Web>("web")
     .WithReference(chat)
     .WithReference(foundry);
-
-
-// The Blazor front end: consumes the AG-UI endpoints via the Blazor AI components.
-builder.AddProject<Projects.AgenticUI_Web>("web")
-    .WithReference(agentServer)
-    .WaitFor(agentServer);
 
 builder.Build().Run();

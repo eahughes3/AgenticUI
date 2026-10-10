@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">Blazor agentic UI architecture</title>
-  <desc id="desc">A Blazor web app connects through the AG-UI protocol to an ASP.NET Core server hosting Microsoft Agent Framework agents backed by Microsoft Foundry, with Aspire orchestrating the application.</desc>
+  <desc id="desc">One Blazor Interactive Server process calls Microsoft Agent Framework agents from a class library in-process, retaining local AG-UI state event types. Microsoft Foundry provides model inference over HTTPS and Aspire orchestrates the application.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#17122b"/>
@@ -15,7 +15,7 @@
   </defs>
   <rect width="1200" height="675" rx="28" fill="url(#background)"/>
   <text x="70" y="82" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">Build agentic UI with .NET</text>
-  <text x="70" y="122" fill="#c9b8ee" font-family="Segoe UI, Arial, sans-serif" font-size="22">Blazor components, AG-UI, Agent Framework, Aspire, and Microsoft Foundry</text>
+  <text x="70" y="122" fill="#c9b8ee" font-family="Segoe UI, Arial, sans-serif" font-size="22">Blazor components and local agents in one server process</text>
 
   <rect x="55" y="170" width="1090" height="410" rx="24" fill="none" stroke="#9f7aea" stroke-width="3" stroke-dasharray="10 9"/>
   <rect x="78" y="150" width="175" height="42" rx="21" fill="#6f42c1"/>
@@ -28,17 +28,17 @@
     <text x="168" y="294" fill="#24133f" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">Blazor Web App</text>
     <text x="108" y="350" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">Components.AI</text>
     <text x="108" y="386" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">UIAgent and content blocks</text>
-    <text x="108" y="422" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">AGUIChatClient (IChatClient)</text>
+    <text x="108" y="422" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">LocalAgentChatClient</text>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="455" y="245" width="290" height="230" rx="22" fill="#ffffff"/>
     <circle cx="505" cy="300" r="28" fill="#7b2cbf"/>
-    <text x="505" y="307" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">API</text>
-    <text x="548" y="294" fill="#24133f" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700">ASP.NET Core</text>
-    <text x="488" y="350" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">MapAGUIServer</text>
+    <text x="505" y="307" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">LIB</text>
+    <text x="548" y="294" fill="#24133f" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700">Agent library</text>
+    <text x="488" y="350" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">Native agent session</text>
     <text x="488" y="386" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">MAF AIAgent and tools</text>
-    <text x="488" y="422" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">AGUI.Server</text>
+    <text x="488" y="422" fill="#4b3f5c" font-family="Segoe UI, Arial, sans-serif" font-size="18">Local AG-UI state events</text>
   </g>
 
   <g filter="url(#shadow)">
@@ -53,9 +53,9 @@
 
   <line x1="370" y1="330" x2="445" y2="330" stroke="#68d5ff" stroke-width="5" marker-end="url(#arrow)"/>
   <line x1="745" y1="330" x2="820" y2="330" stroke="#68d5ff" stroke-width="5" marker-end="url(#arrow)"/>
-  <text x="407" y="310" text-anchor="middle" fill="#dff7ff" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600">AG-UI</text>
-  <text x="407" y="362" text-anchor="middle" fill="#dff7ff" font-family="Segoe UI, Arial, sans-serif" font-size="13">HTTP + SSE</text>
-  <text x="782" y="310" text-anchor="middle" fill="#dff7ff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">IChatClient</text>
+  <text x="407" y="310" text-anchor="middle" fill="#dff7ff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">In-process</text>
+  <text x="407" y="362" text-anchor="middle" fill="#dff7ff" font-family="Segoe UI, Arial, sans-serif" font-size="13">No HTTP</text>
+  <text x="782" y="310" text-anchor="middle" fill="#dff7ff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">HTTPS</text>
 
-  <text x="600" y="625" text-anchor="middle" fill="#d8c9f4" font-family="Segoe UI, Arial, sans-serif" font-size="20">A shared abstraction connects model, agent, protocol, and interactive UI.</text>
+  <text x="600" y="625" text-anchor="middle" fill="#d8c9f4" font-family="Segoe UI, Arial, sans-serif" font-size="20">Browser uses SignalR; model inference uses HTTPS; agents need no API endpoints.</text>
 </svg>

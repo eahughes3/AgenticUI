@@ -1,6 +1,7 @@
 using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
 
 namespace AgenticUI.AgentServer;
@@ -31,7 +32,7 @@ public static class Foundry
     /// <summary>
     /// Reads Foundry settings from configuration. Aspire provides <c>FOUNDRY_URI</c> when the
     /// AppHost references the Foundry resource. The <c>Foundry</c> configuration section remains
-    /// available for running the agent server without the AppHost.
+    /// available for running the Blazor host without the AppHost.
     /// </summary>
     public static FoundryOptions ReadOptions(IConfiguration configuration)
     {
@@ -64,8 +65,8 @@ public static class Foundry
     /// <summary>
     /// Creates the chat client for the reasoning scenario over the OpenAI <em>Responses</em> API.
     /// Reasoning models only surface their reasoning summaries through the Responses API, and
-    /// Microsoft.Extensions.AI maps those summaries to <see cref="TextReasoningContent"/> — which the
-    /// MAF AG-UI adapter then emits as <c>REASONING_*</c> events. Chat completions would spend the
+    /// Microsoft.Extensions.AI maps those summaries to <see cref="TextReasoningContent"/> for the
+    /// Blazor activity renderer. Chat completions would spend the
     /// same reasoning tokens but return no reasoning text at all.
     /// </summary>
     public static IChatClient CreateReasoningChatClient(FoundryOptions options) =>

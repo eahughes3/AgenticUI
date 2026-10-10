@@ -1,5 +1,11 @@
 using AgenticUI.Web;
 using AgenticUI.Web.Components;
+using AgenticUI.AgentServer;
+using Azure.Identity;
+using Microsoft.Extensions.AI;
+using OpenAI;
+using OpenAI.Chat;
+using System.ClientModel.Primitives;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,21 +15,26 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Named HttpClient pointed at the AG-UI agent server (resolved via Aspire service discovery).
-// AG-UI responses are Server-Sent Event streams that stay open for the whole agent run, so the
-// standard resilience handler from ServiceDefaults is removed here: its 30 second total request
-// timeout cuts long runs short, and its retries would silently re-run the agent.
-#pragma warning disable EXTEXP0001 // RemoveAllResilienceHandlers is experimental.
-builder.Services.AddHttpClient("agentserver", client =>
+builder.Services.AddSingleton<AgentCatalog>(services =>
 {
-    client.BaseAddress = new Uri("https+http://agentserver");
-    client.Timeout = Timeout.InfiniteTimeSpan;
-})
-.RemoveAllResilienceHandlers();
-#pragma warning restore EXTEXP0001
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var endpoint = configuration["CHAT_URI"];
+    var deployment = configuration["CHAT_MODELNAME"];
+    if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(deployment))
+    {
+        throw new InvalidOperationException(
+            "Configure CHAT_URI and CHAT_MODELNAME on the Blazor host, or reference the Foundry chat deployment from Aspire.");
+    }
 
-// Helper that turns an AG-UI endpoint on the agent server into an IChatClient / UIAgent.
-builder.Services.AddScoped<AgentServerConnection>();
+    BearerTokenPolicy tokenPolicy = new(new DefaultAzureCredential(), "https://ai.azure.com/.default");
+#pragma warning disable OPENAI001 // Preserve the existing Foundry bearer-authenticated OpenAI client.
+    var client = new ChatClient(deployment, tokenPolicy,
+        new OpenAIClientOptions { Endpoint = new Uri($"{endpoint}openai/v1/") });
+#pragma warning restore OPENAI001
+    var chatClient = client.AsIChatClient();
+    return new AgentCatalog(chatClient, chatClient);
+});
+builder.Services.AddScoped<LocalAgentConnection>();
 
 var app = builder.Build();
 

@@ -6,17 +6,15 @@ using AgenticUI.AgentServer.Scenarios.SharedState;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
-using OpenAI.Chat;
 
 namespace AgenticUI.AgentServer;
 
 /// <summary>
-/// Builds the <see cref="AIAgent"/> instances for each AG-UI demo scenario. Each agent is mapped to
-/// its own AG-UI endpoint in <c>Program.cs</c> via <c>MapAGUIServer</c>.
+/// Builds independent <see cref="AIAgent"/> instances for the in-process Blazor scenarios.
 /// </summary>
-public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningChatClient)
+public sealed class AgentCatalog(IChatClient chatClient, IChatClient reasoningChatClient)
 {
-    private readonly ChatClient _chatClient = chatClient;
+    private readonly IChatClient _chatClient = chatClient;
     private readonly IChatClient _reasoningChatClient = reasoningChatClient;
 
     /// <summary>Basic streaming chat — text in, streamed text out.</summary>
@@ -40,8 +38,8 @@ public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningCha
 
     /// <summary>
     /// Human-in-the-loop. The agent exposes a tool wrapped in <see cref="ApprovalRequiredAIFunction"/>,
-    /// so calling it produces an AG-UI interrupt. The AG-UI client surfaces that as an approval request
-    /// which the Blazor AI components render with Approve/Reject buttons before the tool runs.
+    /// so calling it produces a native approval request which the Blazor AI components render
+    /// with Approve/Reject buttons before the tool runs.
     /// </summary>
     public AIAgent CreateHumanInTheLoop()
     {
@@ -118,8 +116,7 @@ public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningCha
             }
         });
 
-        // The create_plan / update_plan_step tool results are turned into STATE_SNAPSHOT / STATE_DELTA
-        // events declaratively via AGUIStreamOptions in Program.cs — no custom agent required.
+        // The local client projects these tool results into state snapshots and deltas.
         return baseAgent;
     }
 
@@ -217,12 +214,12 @@ public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningCha
                 // Reasoning summaries are opt-in. `ChatOptions.Reasoning` is the provider-neutral
                 // switch: the OpenAI client maps `Full` to the Responses API's detailed reasoning
                 // summary. MAF merges these agent-level options into every run, including runs
-                // that arrive over AG-UI.
+                // made through the local client.
                 Reasoning = new ReasoningOptions { Output = ReasoningOutput.Full }
             }
         });
 
-    /// <summary>[Test] A sequential workflow (researcher -> reporter) exposed as an AG-UI agent.</summary>
+    /// <summary>[Test] A sequential workflow (researcher -> reporter) run locally as an agent.</summary>
     public AIAgent CreateWorkflow()
     {
         AIAgent researcher = this._chatClient.AsAIAgent(

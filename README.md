@@ -1,117 +1,93 @@
 # Building agentic UI with .NET
 
-This sample demonstrates how to build rich agentic user experiences with .NET. A **Blazor** chat experience provides a flexible conversational foundation, and the scenarios extend it with structured rich text, tool-driven UI, human approval, shared and predictive state, generative UI, and visible reasoning. The backend hosts agents built with the **Microsoft Agent Framework (MAF)**, while the **[AG-UI](https://docs.ag-ui.com) C# SDK** carries messages, actions, and state between the agents and the preview [Blazor AI components](https://learn.microsoft.com/aspnet/core/release-notes/aspnetcore-11#experimental-blazor-ai-components-for-agentic-user-interfaces). [Aspire](https://learn.microsoft.com/dotnet/aspire/) wires the application together, and the agents use **[Microsoft Foundry](https://learn.microsoft.com/azure/ai-foundry/)** for model inference.
+This sample builds rich agentic experiences with **Blazor Interactive Server** and the preview [Blazor AI components](https://learn.microsoft.com/aspnet/core/release-notes/aspnetcore-11#experimental-blazor-ai-components-for-agentic-user-interfaces). **Microsoft Agent Framework (MAF)** agents run **in the Blazor server process**, using **Microsoft Foundry** for model inference. **Aspire** wires the model dependency directly to the web host.
+
+There is no separate agent API or AG-UI HTTP/SSE transport. The sample retains **AG-UI state event types internally** for its existing typed state mappers. The browser still communicates with Blazor through SignalR, and inference still uses Foundry HTTPS.
 
 ![AgenticUI demonstrating frontend tools, human approval, and generative UI](docs/images/agentic-ui.gif)
 
 ## What it demonstrates
 
-| Scenario | AG-UI feature | Endpoint |
+| Scenario | Behavior | Blazor page |
 | --- | --- | --- |
-| **Agentic chat** | Streaming, multi-turn chat (`TEXT_MESSAGE_*`) rendered as structured rich text | `/agentic_chat` |
-| **Backend tools** | Server-side tool calls (`TOOL_CALL_*`) mapped to a generated typed block and custom card | `/backend_tool_rendering` |
-| **Frontend tools** | Application-local tool invoked through the AG-UI client tool pipeline and rendered as a typed block | `/tool_based_generative_ui` |
-| **Human in the loop** | Tool approval interrupt → Approve / Reject → resume | `/human_in_the_loop` |
-| **Shared state** | Bidirectional typed state via request state and `STATE_SNAPSHOT` | `/shared_state` |
-| **Predictive state** | Proposed document edits with accept/reject and rollback | `/predictive_state` |
-| **Agentic generative UI** | Live plan via `STATE_SNAPSHOT` + `STATE_DELTA` (JSON Patch) | `/agentic_generative_ui` |
-| **Reasoning** | Reasoning summaries via `REASONING_*` events and a custom activity block | `/reasoning` |
+| Agentic chat | Streaming, multi-turn chat with structured rich text | `/agentic-chat` |
+| Backend tools | Server-executed weather function with generated typed blocks and a custom card | `/backend-tools` |
+| Frontend tools | Page-owned function invoked in the originating Blazor circuit | `/frontend-tools` |
+| Human in the loop | Native tool approval request, Approve/Reject, and resume | `/human-in-the-loop` |
+| Shared state | Editable recipe state passed into the next run and projected from tool results | `/shared-state` |
+| Predictive state | Proposed document edits with preview, acceptance, rejection, and rollback | `/predictive-state` |
+| Agentic generative UI | Live plan progress through local state snapshots and JSON Patch deltas | `/agentic-generative-ui` |
+| Reasoning | Provider-supplied reasoning content rendered in a custom activity block | `/reasoning` |
+
+Workflow and selective-approval agents remain available in `AgentCatalog` without additional UI pages.
 
 ## Architecture
 
-![Architecture of the AgenticUI sample from Blazor through AG-UI and ASP.NET Core to Microsoft Foundry](docs/images/blazor-agentic-ui-architecture.svg)
+![In-process Blazor agent architecture](docs/images/blazor-agentic-ui-architecture.svg)
 
-- **`AgenticUI.AgentServer`** — ASP.NET Core app. Uses `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore` (`AddAGUIServer()` + `MapAGUIServer("/route", agent)`) to expose one AG-UI endpoint per scenario. Agents are MAF `AIAgent`s backed by Microsoft Foundry via `Microsoft.Agents.AI.OpenAI`.
-- **`AgenticUI.Web`** — Blazor Web App (Interactive Server). Each scenario builds a `UIAgent` over an `AGUIChatClient` (from the AG-UI C# SDK's `AGUI.Client`), which turns an AG-UI endpoint into a standard `IChatClient`. UI is rendered with the Blazor AI components (`ChatPage`, `MessageList`, `BlockRenderer`, `UIAgent<TState>`, …).
-- **`AgenticUI.AppHost` / `AgenticUI.ServiceDefaults`** — Aspire orchestration and service discovery.
+- **`AgenticUI.Web`** is the only application web host. Each page owns a `UIAgent` over a `LocalAgentChatClient`, created by the scoped `LocalAgentConnection`.
+- **`AgenticUI.AgentServer`** retains its historical name but is now a **class library**, not an API executable. It contains the catalog, backend tools, serializer metadata, state-aware agents, and native chat adapter.
+- **`LocalAgentChatClient`** binds an independent MAF session per client. The native `AsIChatClient` adapter handles messages, tool calls/results, frontend functions, and approvals. No extra function-invocation loop is added. Tool results also produce local `StateSnapshotEvent`/`StateDeltaEvent` values for the state mappers.
+- **`AgenticUI.AppHost` / `AgenticUI.ServiceDefaults`** provide orchestration, health checks, and telemetry. AppHost references the existing Foundry resource and chat deployment directly from `web`.
 
-### Packages used
+Each `UIAgent` uses a `LocalConversationThread` that captures the native session's conversation ID and explicitly enables stateful history. Without that thread configuration, the preview UIAgent sends full history and would duplicate the native session's messages. With it, subsequent turns send only new messages. Reset creates a new client/session and thread. Conversations are in memory only; pages/circuits do not share messages, pending approvals, or UI callbacks. There is no durable store or recovery after server restart/circuit loss.
 
-- `Microsoft.Agents.AI`, `Microsoft.Agents.AI.OpenAI` (1.15.0)
-- `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore` (1.15.0-preview — the AG-UI hosting glue is still preview)
-- `AGUI.Client`, `AGUI.Abstractions`, `AGUI.Formatting`, `AGUI.Server` (1.0.0 — the stable AG-UI .NET SDK)
-- `Azure.AI.OpenAI` (2.9.0-beta.1)
-- `Microsoft.AspNetCore.Components.AI` (0.1.0-preview.1.26459.102)
-- `Aspire` (13.5.3)
+### Packages
 
-## Running it
+- `Microsoft.Agents.AI.OpenAI`, `Microsoft.Agents.AI.Workflows` 1.24.0
+- `AGUI.Abstractions` 1.0.0 (local event/request data only)
+- `Azure.AI.OpenAI` 2.9.0-beta.1, `Azure.Identity` 1.21.0
+- `Microsoft.AspNetCore.Components.AI` 0.1.0-preview.1.26459.102
+- Aspire AppHost SDK 13.5.3 and `Aspire.Hosting.Foundry` 13.6.1-preview.1.26506.6
 
-### Prerequisites
+The Blazor components and native MAF `AsIChatClient` adapter are experimental. Package upgrades may require rechecking their integration contracts.
 
-- [.NET 11 RC1 SDK](https://dotnet.microsoft.com/download/dotnet/11.0)
-- [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/)
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- A **[Microsoft Foundry](https://learn.microsoft.com/azure/ai-foundry/) resource** with a
-  `gpt-5-mini` deployment (used for both the general chat and reasoning scenarios).
+## Running
 
-### Clone and build
+Use the .NET 11 RC1 SDK selected by `global.json`, the Aspire CLI, and Azure CLI. The developer identity must have access to the existing Foundry account and deployment (normally the **Cognitive Services OpenAI User** role).
 
-```bash
-git clone https://github.com/danroth27/AgenticUI.git
-cd AgenticUI
-dotnet restore
-dotnet build
-```
-
-### Configure Microsoft Foundry
-
-Sign in to Azure with the identity that has access to the Foundry resource:
-
-```bash
+```powershell
 az login
+dotnet build AgenticUI.slnx
+aspire start --non-interactive
 ```
 
-The identity must have the **Cognitive Services OpenAI User** role on the Foundry resource. Ask the resource owner or administrator to assign the role if you don't have permission to do so.
+Open the **web** resource in the Aspire dashboard. The current AppHost contains the existing-account/deployment configuration; adjust those existing resource definitions for your account. This migration does not change or provision a different model resource.
 
-Set the existing Foundry account endpoint as an AppHost user-secret:
+For direct Web hosting without Aspire, supply the same active configuration that the deployment reference provides:
 
-```bash
-dotnet user-secrets set "Parameters:foundry-endpoint" "https://<resource>.services.ai.azure.com/" --project src/AgenticUI.AppHost
+```powershell
+$env:CHAT_URI = "https://<resource>.services.ai.azure.com/"
+$env:CHAT_MODELNAME = "<deployment-name>"
+dotnet run --project src\AgenticUI.Web
 ```
 
-Use the Foundry resource endpoint, such as `https://<resource>.services.ai.azure.com/`. The AppHost models Foundry as an externally managed HTTPS dependency, so it won't provision or modify the Foundry account. The app authenticates with Microsoft Entra ID through `DefaultAzureCredential`; a deployed AgentServer's managed identity needs the same role as the local developer.
+`CHAT_URI` must include the trailing slash: the existing model client appends `openai/v1/`. Authentication uses `DefaultAzureCredential` with the existing `https://ai.azure.com/.default` scope. No API keys are stored in source.
 
-Both deployment names default to `gpt-5-mini`. Override them when your deployment names differ:
+### Reasoning limitation
 
-```bash
-dotnet user-secrets set "Parameters:foundry-model" "<deployment-name>" --project src/AgenticUI.AppHost
-dotnet user-secrets set "Parameters:foundry-reasoning-model" "<reasoning-deployment-name>" --project src/AgenticUI.AppHost
+The active host preserves the existing Chat Completions model client for both ordinary and reasoning scenarios. The activity renderer accepts `TextReasoningContent`, but that client may not return reasoning summaries. The unused `Foundry.CreateReasoningChatClient` helper illustrates a Responses-based path; switching providers is outside this migration.
+
+## Tests
+
+```powershell
+dotnet test tests\AgenticUI.Tests\AgenticUI.Tests.csproj
 ```
 
-> **Why a separate reasoning path?** Reasoning models only return their reasoning summaries through
-> the OpenAI **Responses** API — chat completions spend the same reasoning tokens but return no
-> reasoning text. So the reasoning scenario builds its client with `GetResponsesClient()` and opts in
-> via the provider-neutral `ChatOptions.Reasoning`
-> (`new ReasoningOptions { Output = ReasoningOutput.Full }`). `Microsoft.Extensions.AI` maps that to
-> the Responses API's reasoning summary setting and surfaces the summaries as `TextReasoningContent`,
-> which the MAF AG-UI adapter emits as `REASONING_*` events.
-
-### Run
-
-```bash
-aspire run
-```
-
-Open the Aspire dashboard, then open the **web** resource and pick a scenario from the nav.
-
-### Troubleshooting
-
-- **No Microsoft Foundry endpoint configured:** Set the `Parameters:foundry-endpoint` AppHost user-secret shown above.
-- **Authentication failures:** Run `az login` again and verify that the selected identity has the **Cognitive Services OpenAI User** role.
-- **Model deployment not found:** Set `Parameters:foundry-model` and `Parameters:foundry-reasoning-model` to the deployment names configured in your Foundry account.
+Tests use deterministic model streams and counted functions rather than live Foundry calls. They exercise the installed native adapter, tool/approval behavior, local state projection, conversation isolation, and cancellation.
 
 ## Repository layout
 
 ```text
-src/
-  AgenticUI.AppHost/          Aspire orchestration
-  AgenticUI.ServiceDefaults/  Shared service defaults
-  AgenticUI.AgentServer/      AG-UI backend (MAF + AG-UI C# SDK)
-  AgenticUI.Web/              Blazor front end (Blazor AI components)
-docs/
-  findings.md                Current implementation findings and limitations
+src\
+  AgenticUI.AppHost\          Aspire orchestration
+  AgenticUI.ServiceDefaults\  Shared web host defaults
+  AgenticUI.AgentServer\      In-process agent class library
+  AgenticUI.Web\              Blazor Interactive Server host and UI
+tests\
+  AgenticUI.Tests\            Deterministic integration tests
+docs\
+  findings.md                Integration notes and limitations
 ```
 
-## Notes & findings
-
-See [`docs/findings.md`](docs/findings.md) for current implementation notes, design boundaries, and remaining limitations.
+See [integration findings](docs/findings.md) for state, tool, and rendering details.

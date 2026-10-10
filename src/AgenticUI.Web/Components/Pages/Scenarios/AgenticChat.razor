@@ -1,6 +1,6 @@
 @page "/agentic-chat"
 @using AgenticUI.Web.Formatting
-@inject AgentServerConnection Agents
+@inject LocalAgentConnection Agents
 @implements IDisposable
 
 <PageTitle>Agentic Chat</PageTitle>
@@ -9,10 +9,9 @@
     <div class="scenario__intro">
         <h1>Agentic chat</h1>
         <p>
-            The simplest AG-UI scenario: a streaming, multi-turn conversation. The Blazor
-            <code>&lt;ChatPage&gt;</code> component talks to an <code>IChatClient</code> that is an
-            <code>AGUIChatClient</code> pointed at the server's <code>/agentic_chat</code> endpoint.
-            Tokens stream in over Server-Sent Events as AG-UI <code>TEXT_MESSAGE_*</code> events,
+            A streaming, multi-turn conversation. The Blazor
+            <code>&lt;ChatPage&gt;</code> component talks to an in-process <code>IChatClient</code>.
+            Tokens stream directly from the agent,
             then a delegating chat client converts the model's Markdown into structured
             <code>RichTextContent</code> for safe, incremental rendering.
         </p>
@@ -29,8 +28,8 @@
 
     protected override void OnInitialized()
     {
-        _chatClient = new FormattedChatClient(Agents.CreateChatClient("/agentic_chat"));
-        _agent = new UIAgent(_chatClient);
+        _chatClient = new FormattedChatClient(Agents.CreateChatClient(AgentScenario.AgenticChat));
+        _agent = new UIAgent(_chatClient, options => options.Thread = new LocalConversationThread());
     }
 
     public void Dispose()

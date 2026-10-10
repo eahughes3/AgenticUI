@@ -23,7 +23,9 @@ public sealed class Step
 [JsonConverter(typeof(JsonStringEnumConverter<StepStatus>))]
 public enum StepStatus
 {
+    [JsonStringEnumMemberName("pending")]
     Pending,
+    [JsonStringEnumMemberName("completed")]
     Completed
 }
 

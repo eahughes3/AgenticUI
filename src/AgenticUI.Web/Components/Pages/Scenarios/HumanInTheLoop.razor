@@ -1,6 +1,6 @@
 @page "/human-in-the-loop"
 @using System.Globalization
-@inject AgentServerConnection Agents
+@inject LocalAgentConnection Agents
 @implements IDisposable
 
 <PageTitle>Human in the loop</PageTitle>
@@ -10,7 +10,7 @@
         <h1>Human in the loop</h1>
         <p>
             The agent exposes a <code>book_meeting</code> tool wrapped in
-            <code>ApprovalRequiredAIFunction</code>. Calling it raises an AG-UI interrupt; the Blazor AI
+            <code>ApprovalRequiredAIFunction</code>. Calling it raises a native approval request; the Blazor AI
             components render Approve / Reject buttons and the run resumes only after you decide.
             Try: <em>"Book a 30 minute meeting with Sam tomorrow at 2pm."</em>
         </p>
@@ -75,8 +75,8 @@
 
     protected override void OnInitialized()
     {
-        _chatClient = Agents.CreateChatClient("/human_in_the_loop");
-        _agent = new UIAgent(_chatClient);
+        _chatClient = Agents.CreateChatClient(AgentScenario.HumanInTheLoop);
+        _agent = new UIAgent(_chatClient, options => options.Thread = new LocalConversationThread());
     }
 
     public void Dispose() => (_chatClient as IDisposable)?.Dispose();
