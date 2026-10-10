@@ -68,21 +68,6 @@ if (foundryConfigured)
     app.MapAGUIServer("/workflow", agents.CreateWorkflow());
     app.MapAGUIServer("/selective_approval", agents.CreateSelectiveApproval());
 
-    // Map one AG-UI endpoint per scenario. Each is an HTTP POST that streams AG-UI events (SSE).
-    app.MapAGUIServer("/agentic_chat", agents.CreateAgenticChat());
-    app.MapAGUIServer("/backend_tool_rendering", agents.CreateBackendToolRendering());
-    app.MapAGUIServer("/human_in_the_loop", agents.CreateHumanInTheLoop());
-    app.MapAGUIServer("/tool_based_generative_ui", agents.CreateToolBasedGenerativeUI());
-    app.MapAGUIServer("/agentic_generative_ui", agents.CreateAgenticGenerativeUI())
-        .WithMetadata(new AGUIStreamOptions()
-            .MapResultAsStateSnapshot("create_plan")   // full plan -> STATE_SNAPSHOT
-            .MapResultAsStateDelta("update_plan_step")); // JSON Patch -> STATE_DELTA
-    app.MapAGUIServer("/shared_state", agents.CreateSharedState())
-        .WithMetadata(new AGUIStreamOptions().MapResultAsStateSnapshot("generate_recipe"));
-    app.MapAGUIServer("/predictive_state", agents.CreatePredictiveState());
-    app.MapAGUIServer("/reasoning", agents.CreateReasoning());
-    app.MapAGUIServer("/workflow", agents.CreateWorkflow());
-    app.MapAGUIServer("/selective_approval", agents.CreateSelectiveApproval());
 }
 
 app.MapGet("/", () => Results.Ok(new

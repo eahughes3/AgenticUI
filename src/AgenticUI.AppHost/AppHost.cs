@@ -8,11 +8,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 // The deployment names default to gpt-5-mini and can be overridden with Parameters:foundry-model
 // and Parameters:foundry-reasoning-model. Note that the AddParameter overload taking a value treats
 // it as a constant rather than a default, so read configuration explicitly to honor the override.
-var foundryEndpoint = builder.AddParameter("foundry-endpoint");
-var foundryModel = builder.AddParameter("foundry-model",
-    value: builder.Configuration["Parameters:foundry-model"] ?? "gpt-5-mini");
-var foundryReasoningModel = builder.AddParameter("foundry-reasoning-model",
-    value: builder.Configuration["Parameters:foundry-reasoning-model"] ?? "gpt-5-mini");
+//var foundryEndpoint = builder.AddParameter("foundry-endpoint");
+//var foundryModel = builder.AddParameter("foundry-model",
+//    value: builder.Configuration["Parameters:foundry-model"] ?? "gpt-5-mini");
+//var foundryReasoningModel = builder.AddParameter("foundry-reasoning-model",
+//    value: builder.Configuration["Parameters:foundry-reasoning-model"] ?? "gpt-5-mini");
 
 var foundryName = builder.AddParameter("foundryName", "ervin-mp3gmu7n-eastus2");
 var foundryRegion = builder.AddParameter("foundryRegion", "westus2");
