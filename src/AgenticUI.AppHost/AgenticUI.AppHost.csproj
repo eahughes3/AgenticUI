@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Foundry" Version="13.6.1-preview.1.26506.6" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AgenticUI.AgentServer\AgenticUI.AgentServer.csproj" />
     <ProjectReference Include="..\AgenticUI.Web\AgenticUI.Web.csproj" />
   </ItemGroup>

@@ -16,9 +16,9 @@
 
   <ItemGroup>
     <!-- MAF AG-UI server hosting (still in preview) layered over the AG-UI C# SDK -->
-    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.15.0-preview.260722.1" />
-    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.15.0" />
-    <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.15.0" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.24.0-preview.261006.1" />
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.24.0" />
+    <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.24.0" />
     <!-- AG-UI C# SDK (released by the AG-UI team) -->
     <PackageReference Include="AGUI.Server" Version="1.0.0" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
