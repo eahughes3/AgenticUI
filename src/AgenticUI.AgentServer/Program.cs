@@ -85,8 +85,6 @@ if (foundryConfigured)
     app.MapAGUIServer("/selective_approval", agents.CreateSelectiveApproval());
 }
 
-
-
 app.MapGet("/", () => Results.Ok(new
 {
     service = "AgenticUI AG-UI agent server",
