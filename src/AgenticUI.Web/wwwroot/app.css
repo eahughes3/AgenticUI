@@ -165,6 +165,12 @@ ul.sc-ai-rich-text__list > .sc-ai-rich-text__list-item::before {
     border-radius: var(--app-radius); background: linear-gradient(135deg, #e3f0ff, #f6fbff);
     border: 1px solid #d6e6fb; max-width: 420px; }
 .weather-card__icon { font-size: 2.5rem; }
+.random-number-card { padding: 1rem 1.25rem; margin: .5rem 0; max-width: 420px;
+    border-radius: var(--app-radius); border: 1px solid #d6e6fb;
+    background: linear-gradient(135deg, #e3f0ff, #f6fbff); }
+.random-number-card__label { font-weight: 600; font-size: 1.1rem; }
+.random-number-card__number { font-size: 3rem; font-weight: 700; color: #1f5fbf; }
+.random-number-card__range, .random-number-card__status { color: var(--app-text-muted); font-size: .85rem; }
 .weather-card__location { font-weight: 600; font-size: 1.1rem; }
 .weather-card__temp { font-size: 2rem; font-weight: 700; color: #1f5fbf; }
 .weather-card__meta { color: #567; font-size: .85rem; }

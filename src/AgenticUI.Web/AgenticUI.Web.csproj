@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
     <ProjectReference Include="..\AgenticUI.ServiceDefaults\AgenticUI.ServiceDefaults.csproj" />
     <ProjectReference Include="..\AgenticUI.AgentServer\AgenticUI.AgentServer.csproj" />
   </ItemGroup>
