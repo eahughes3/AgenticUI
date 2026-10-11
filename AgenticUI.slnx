@@ -3,6 +3,7 @@
     <File Path="global.json" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="AgentiUI.McpServerApp/AgentiUI.McpServerApp.csproj" Id="b892afb3-2fff-45ae-94b3-8c6892ce7890" />
     <Project Path="src/AgenticUI.AgentServer/AgenticUI.AgentServer.csproj" />
     <Project Path="src/AgenticUI.AppHost/AgenticUI.AppHost.csproj" />
     <Project Path="src/AgenticUI.ServiceDefaults/AgenticUI.ServiceDefaults.csproj" />
