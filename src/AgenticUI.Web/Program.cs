@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel.Primitives;
+using Microsoft.Extensions.Http.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,12 @@ builder.Services.AddSingleton<AgentCatalog>(services =>
 //});
 
 builder.Services.AddScoped<LocalAgentConnection>();
+builder.Services.AddScoped<BackendMcpConnection>();
+// MCP POSTs execute tools, so never automatically replay them through HTTP resilience.
+#pragma warning disable EXTEXP0001 // Remove the shared defaults' resilience handler for the streaming MCP transport.
+builder.Services.AddHttpClient("backend-mcp", client => client.Timeout = Timeout.InfiniteTimeSpan)
+    .RemoveAllResilienceHandlers();
+#pragma warning restore EXTEXP0001
 
 var app = builder.Build();
 

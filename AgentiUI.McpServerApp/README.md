@@ -1,5 +1,27 @@
 # MCP Server
 
+## AgenticUI integration
+
+`get_random_number` takes **no arguments** and returns one server-generated integer
+from **0 through 1000 inclusive**. BackendTools displays the returned number in a
+dedicated result card alongside its existing weather card.
+
+Aspire launches this project with `Mcp__Transport=http`, manages its HTTPS endpoint,
+and connects Web using service discovery. HTTP mode serves Streamable HTTP MCP at
+`/mcp` and includes ServiceDefaults health checks/telemetry.
+
+To run HTTP mode manually:
+
+```powershell
+dotnet run --project AgentiUI.McpServerApp -- --Mcp:Transport=http --urls=http://localhost:5055
+```
+
+Set `Mcp__Endpoint=http://localhost:5055/mcp` in the Web process for manual hosting.
+The HTTP endpoint is intended for local development, not unauthenticated public hosting.
+The default transport is still **stdio**; the IDE and NuGet configurations below
+continue to work without HTTP arguments. HTTP mode requires ASP.NET Core runtime
+assets, which are included in self-contained publishing.
+
 This README was created using the C# MCP server project template.
 It demonstrates how you can easily create an MCP server using C# and publish it as a NuGet package.
 
@@ -54,7 +76,9 @@ Refer to the VS Code or Visual Studio documentation for more information on conf
 
 ## Testing the MCP Server
 
-Once configured, you can ask Copilot Chat for a random number, for example, `Give me 3 random numbers`. It should prompt you to use the `get_random_number` tool on the `AgentiUI.McpServerApp` MCP server and show you the results.
+Once configured, ask Copilot Chat `Generate a random number`. It should use
+`get_random_number` on `AgentiUI.McpServerApp` and return an integer in the inclusive
+range 0-1000. For multiple numbers, the tool is called once per number.
 
 ## Publishing to NuGet.org
 

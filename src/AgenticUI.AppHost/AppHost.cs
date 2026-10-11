@@ -23,8 +23,16 @@ var foundry = builder.AddFoundry("aiFoundry")
 
 var chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt56Luna);
 
+var mcp = builder.AddProject<Projects.AgentiUI_McpServerApp>("mcpserver")
+    .WithEnvironment("Mcp__Transport", "http")
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+    .WithHttpsEndpoint()
+    .WithHttpHealthCheck("/health");
+
 // Blazor hosts the agents in-process and consumes the same Foundry deployment directly.
 builder.AddProject<Projects.AgenticUI_Web>("web")
+    .WithReference(mcp)
+    .WaitFor(mcp)
     .WithReference(chat)
     .WithReference(foundry);
 

@@ -8,6 +8,9 @@ namespace AgenticUI.Web;
 /// </summary>
 public sealed class LocalAgentConnection(AgentCatalog catalog)
 {
+    public IChatClient CreateBackendToolsChatClient(IEnumerable<AITool> tools) =>
+        new LocalAgentChatClient(catalog.CreateBackendToolRendering(tools), AgentScenario.BackendTools);
+
     public IChatClient CreateChatClient(AgentScenario scenario)
     {
         var agent = scenario switch

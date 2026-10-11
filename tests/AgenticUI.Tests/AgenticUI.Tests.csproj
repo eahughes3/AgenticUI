@@ -14,5 +14,6 @@
     </PackageReference>
     <ProjectReference Include="..\..\src\AgenticUI.AgentServer\AgenticUI.AgentServer.csproj" />
     <ProjectReference Include="..\..\src\AgenticUI.Web\AgenticUI.Web.csproj" />
+    <ProjectReference Include="..\..\AgentiUI.McpServerApp\AgentiUI.McpServerApp.csproj" />
   </ItemGroup>
 </Project>

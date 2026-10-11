@@ -5,14 +5,9 @@ using System.ComponentModel;
 /// Sample MCP tools for demonstration purposes.
 /// These tools can be invoked by MCP clients to perform various operations.
 /// </summary>
-internal class RandomNumberTools
+public class RandomNumberTools
 {
-    [McpServerTool]
-    [Description("Generates a random number between the specified minimum and maximum values.")]
-    public int GetRandomNumber(
-        [Description("Minimum value (inclusive)")] int min = 0,
-        [Description("Maximum value (exclusive)")] int max = 100)
-    {
-        return Random.Shared.Next(min, max);
-    }
+    [McpServerTool(Name = "get_random_number")]
+    [Description("Generates and returns one random integer from 0 through 1000, inclusive. Takes no arguments.")]
+    public int GetRandomNumber() => Random.Shared.Next(0, 1001);
 }

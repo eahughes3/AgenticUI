@@ -25,16 +25,31 @@ public sealed class AgentCatalog(IChatClient chatClient, IChatClient reasoningCh
             instructions: "You are a helpful, friendly assistant. Keep answers concise.");
 
     /// <summary>Backend tool rendering — the server executes a <c>get_weather</c> tool.</summary>
-    public AIAgent CreateBackendToolRendering() =>
-        this._chatClient.AsAIAgent(
+    public AIAgent CreateBackendToolRendering(IEnumerable<AITool>? additionalTools = null)
+    {
+        List<AITool> tools = [AIFunctionFactory.Create(
+            GetWeather,
+            name: "get_weather",
+            description: "Get the weather for a given location.",
+            AgentServerSerializerContext.Default.Options)];
+        if (additionalTools is not null)
+        {
+            tools.AddRange(additionalTools);
+        }
+        var duplicate = tools.GroupBy(tool => tool.Name, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate is not null)
+        {
+            throw new InvalidOperationException($"Duplicate backend tool name '{duplicate.Key}'.");
+        }
+        return this._chatClient.AsAIAgent(
             name: "BackendToolRenderer",
-            description: "An agent that calls a backend weather tool.",
-            instructions: "You are a helpful assistant. Use the get_weather tool when asked about the weather.",
-            tools: [AIFunctionFactory.Create(
-                GetWeather,
-                name: "get_weather",
-                description: "Get the weather for a given location.",
-                AgentServerSerializerContext.Default.Options)]);
+            description: "An agent that calls backend weather and MCP tools.",
+            instructions: "You are a helpful assistant. Use get_weather when asked about weather. " +
+                "Use get_random_number when asked for a random number; never invent its result. " +
+                "Use the other available tools when appropriate.",
+            tools: tools);
+    }
 
     /// <summary>
     /// Human-in-the-loop. The agent exposes a tool wrapped in <see cref="ApprovalRequiredAIFunction"/>,

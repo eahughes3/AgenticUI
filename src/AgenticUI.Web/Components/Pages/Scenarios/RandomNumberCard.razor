@@ -1,0 +1,21 @@
+<div class="random-number-card" aria-live="polite">
+    <div class="random-number-card__label">Random number</div>
+    @if (!Block.HasResult)
+    {
+        <div class="random-number-card__status" role="status">Generating number...</div>
+    }
+    else if (Block.Number is { } number)
+    {
+        <div class="random-number-card__number">@number</div>
+    }
+    else
+    {
+        <div class="random-number-card__status" role="alert">The MCP tool did not return a valid number.</div>
+    }
+    <div class="random-number-card__range">0-1000 inclusive · MCP server</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RandomNumberToolBlock Block { get; set; } = default!;
+}

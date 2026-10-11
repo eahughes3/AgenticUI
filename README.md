@@ -11,7 +11,7 @@ There is no separate agent API or AG-UI HTTP/SSE transport. The sample retains *
 | Scenario | Behavior | Blazor page |
 | --- | --- | --- |
 | Agentic chat | Streaming, multi-turn chat with structured rich text | `/agentic-chat` |
-| Backend tools | Server-executed weather function with generated typed blocks and a custom card | `/backend-tools` |
+| Backend tools | Local weather and HTTP MCP tools, with custom weather and random-number result cards | `/backend-tools` |
 | Frontend tools | Page-owned function invoked in the originating Blazor circuit | `/frontend-tools` |
 | Human in the loop | Native tool approval request, Approve/Reject, and resume | `/human-in-the-loop` |
 | Shared state | Editable recipe state passed into the next run and projected from tool results | `/shared-state` |
@@ -29,6 +29,7 @@ Workflow and selective-approval agents remain available in `AgentCatalog` withou
 - **`AgenticUI.AgentServer`** retains its historical name but is now a **class library**, not an API executable. It contains the catalog, backend tools, serializer metadata, state-aware agents, and native chat adapter.
 - **`LocalAgentChatClient`** binds an independent MAF session per client. The native `AsIChatClient` adapter handles messages, tool calls/results, frontend functions, and approvals. No extra function-invocation loop is added. Tool results also produce local `StateSnapshotEvent`/`StateDeltaEvent` values for the state mappers.
 - **`AgenticUI.AppHost` / `AgenticUI.ServiceDefaults`** provide orchestration, health checks, and telemetry. AppHost references the existing Foundry resource and chat deployment directly from `web`.
+- **`AgentiUI.McpServerApp`** exposes `get_random_number`: a no-argument tool returning one integer from **0 through 1000 inclusive**. Aspire starts its opt-in HTTP transport at `/mcp`, and Web discovers all its tools when BackendTools opens. Its default stdio mode remains available to IDE MCP clients.
 
 Each `UIAgent` uses a `LocalConversationThread` that captures the native session's conversation ID and explicitly enables stateful history. Without that thread configuration, the preview UIAgent sends full history and would duplicate the native session's messages. With it, subsequent turns send only new messages. Reset creates a new client/session and thread. Conversations are in memory only; pages/circuits do not share messages, pending approvals, or UI callbacks. There is no durable store or recovery after server restart/circuit loss.
 
@@ -53,6 +54,22 @@ aspire start --non-interactive
 ```
 
 Open the **web** resource in the Aspire dashboard. The current AppHost contains the existing-account/deployment configuration; adjust those existing resource definitions for your account. This migration does not change or provision a different model resource.
+
+On `/backend-tools`, try **"Generate a random number"** or **"What is the weather in Seattle?"**.
+The random number is generated in the MCP server and displayed in its own result card; the weather card is unchanged.
+BackendTools shows a loading state while connecting, or an error and retry button if MCP discovery fails.
+Other scenarios do not connect to MCP. Web uses Aspire service discovery for the `mcpserver` resource; no MCP connection is made by the browser.
+
+For direct hosting, start the MCP server separately and configure Web's endpoint:
+
+```powershell
+dotnet run --project AgentiUI.McpServerApp -- --Mcp:Transport=http --urls=http://localhost:5055
+# In the Web process's terminal:
+$env:Mcp__Endpoint = "http://localhost:5055/mcp"
+```
+
+The example fixed port is for manual hosting only; AppHost assigns ports dynamically.
+The MCP endpoint has no production authentication configuration and should not be exposed publicly.
 
 For direct Web hosting without Aspire, supply the same active configuration that the deployment reference provides:
 

@@ -15,5 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgenticUI.Web\AgenticUI.Web.csproj" />
+    <ProjectReference Include="..\..\AgentiUI.McpServerApp\AgentiUI.McpServerApp.csproj" />
   </ItemGroup>
 </Project>
