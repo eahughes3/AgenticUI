@@ -21,7 +21,7 @@ var resourceGroup = builder.AddParameter("foundryResourceGroup", "rg-avinosoft-a
 var foundry = builder.AddFoundry("aiFoundry")
     .AsExisting(foundryName, resourceGroup);
 
-var chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt56Luna);
+var chat = foundry.AddDeployment("chat", "gpt-6-luna", "2026-09-22", "OpenAI");
 
 var mcp = builder.AddProject<Projects.AgentiUI_McpServerApp>("mcpserver")
     .WithEnvironment("Mcp__Transport", "http")

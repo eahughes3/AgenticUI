@@ -42,7 +42,7 @@ This sample still maps completed proposals, not partial streaming argument fragm
 
 ## Rendering
 
-Reasoning is provider-neutral: `ReasoningActivityHandler` consumes `TextReasoningContent` directly. No `REASONING_*` transport conversion is needed. The active host preserves its existing Chat Completions client, which may not expose reasoning summaries; the migration does not switch to Responses or promise a new model capability.
+Reasoning is provider-neutral: `ReasoningActivityHandler` consumes `TextReasoningContent` directly. No `REASONING_*` transport conversion is needed. Normal scenarios retain Chat Completions with explicit `reasoning_effort: none` so function tools work. The reasoning scenario uses the v1 Responses API, reusing the Azure client's configured authentication and transport. The Responses client is constructed directly because Azure.AI.OpenAI 2.9.0-beta.1's Responses factory calls a constructor removed in OpenAI 2.14.0. Host navigation and client request tests cover this runtime compatibility boundary.
 
 `FormattedChatClient` still accumulates Markdown and supplies `RichTextContent` snapshots through the existing parser. This retains the earlier rendering tradeoff: presentation snapshots may be kept in history alongside ordinary text. The preview public block API does not expose the replacement/finalization hooks that would eliminate the wrapper.
 

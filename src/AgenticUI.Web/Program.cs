@@ -1,11 +1,8 @@
 using AgenticUI.Web;
 using AgenticUI.Web.Components;
 using AgenticUI.AgentServer;
-using Azure.Identity;
+using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
-using OpenAI;
-using OpenAI.Chat;
-using System.ClientModel.Primitives;
 using Microsoft.Extensions.Http.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,8 +18,17 @@ var openai = builder.AddAzureOpenAIClient(connectionName: "chat")
 
 builder.Services.AddSingleton<AgentCatalog>(services =>
 {
-    var chatClient = services.GetRequiredService<IChatClient>();
-    return new AgentCatalog(chatClient, chatClient);
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var chatClient = new ReasoningDisabledChatClient(services.GetRequiredService<IChatClient>());
+    var reasoningModel = configuration["CHAT_REASONING_MODEL"] ??
+        configuration["FOUNDRY_REASONING_MODEL"] ??
+        configuration["CHAT_MODELNAME"] ??
+        FoundryOptions.DefaultReasoningModel;
+
+    var reasoningChatClient = Foundry.CreateResponsesChatClient(
+        services.GetRequiredService<AzureOpenAIClient>(), reasoningModel);
+
+    return new AgentCatalog(chatClient, reasoningChatClient);
 });
 
 

@@ -3,6 +3,8 @@ using Azure.Identity;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
+using OpenAI.Responses;
+using System.ClientModel.Primitives;
 
 namespace AgenticUI.AgentServer;
 
@@ -70,5 +72,19 @@ public static class Foundry
     /// same reasoning tokens but return no reasoning text at all.
     /// </summary>
     public static IChatClient CreateReasoningChatClient(FoundryOptions options) =>
-        CreateClient(options).GetResponsesClient().AsIChatClient(options.ReasoningModel);
+        CreateResponsesChatClient(CreateClient(options), options.ReasoningModel);
+
+    /// <summary>Creates a v1 Responses client using the configured Azure client's authentication and transport.</summary>
+    public static IChatClient CreateResponsesChatClient(AzureOpenAIClient client, string model)
+    {
+        // Azure.AI.OpenAI 2.9's Responses factory targets a constructor removed in OpenAI 2.14.
+        var responses = new FoundryResponsesClient(client.Pipeline, new ResponsesClientOptions
+        {
+            Endpoint = new Uri(client.Endpoint, "/openai/v1/")
+        });
+        return responses.AsIChatClient(model);
+    }
+
+    private sealed class FoundryResponsesClient(ClientPipeline pipeline, ResponsesClientOptions options)
+        : ResponsesClient(pipeline, options);
 }

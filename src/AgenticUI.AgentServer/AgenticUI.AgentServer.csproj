@@ -4,7 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- OPENAI001: AzureOpenAIClient.GetResponsesClient() / AsIChatClient(ResponsesClient) are still
+    <!-- OPENAI001: ResponsesClient / AsIChatClient(ResponsesClient) are still
          evaluation-only. Everything else this project uses - including the tool-approval APIs and
          ChatOptions.Reasoning - is now stable, so no MEAI001 suppression is needed. -->
     <NoWarn>$(NoWarn);OPENAI001</NoWarn>
