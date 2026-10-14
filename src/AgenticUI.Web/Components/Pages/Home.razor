@@ -1,20 +1,20 @@
 ﻿@page "/"
 
-<PageTitle>AgenticUI — AG-UI for .NET</PageTitle>
+<PageTitle>AgenticUI — In-process agents for .NET</PageTitle>
 
 <div class="home">
     <h1>Agentic UI for .NET</h1>
     <p class="lead">
-        A tour of <strong>AG-UI</strong> (the Agent User Interaction Protocol) in .NET. The backend hosts
-        agents built with the <strong>Microsoft Agent Framework</strong> and the <strong>AG-UI C# SDK</strong>;
-        the frontend is <strong>Blazor</strong> using the new Blazor AI components. Aspire wires the two
-        together, and the agents run on <strong>Microsoft Foundry</strong>.
+        A tour of agentic UI in .NET. <strong>Blazor Interactive Server</strong> hosts
+        <strong>Microsoft Agent Framework</strong> agents in-process using the new Blazor AI components.
+        AG-UI state event types are retained as local data structures, without agent HTTP endpoints.
+        Aspire connects the application to <strong>Microsoft Foundry</strong> for model inference.
     </p>
 
     <div class="cards">
         <a class="card" href="agentic-chat">
             <h3>💬 Agentic chat</h3>
-            <p>Streaming, multi-turn conversation over AG-UI Server-Sent Events.</p>
+            <p>Streaming, multi-turn conversation with an in-process agent.</p>
         </a>
         <a class="card" href="backend-tools">
             <h3>🛠️ Backend tools</h3>
@@ -22,7 +22,7 @@
         </a>
         <a class="card" href="frontend-tools">
             <h3>🎨 Frontend tools</h3>
-            <p>The model calls a client-side tool that runs in the browser.</p>
+            <p>The model calls a page-owned tool in the originating Blazor circuit.</p>
         </a>
         <a class="card" href="human-in-the-loop">
             <h3>✅ Human in the loop</h3>

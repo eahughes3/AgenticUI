@@ -1,5 +1,9 @@
 using AgenticUI.Web;
 using AgenticUI.Web.Components;
+using AgenticUI.AgentServer;
+using Azure.AI.OpenAI;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Http.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,21 +13,52 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Named HttpClient pointed at the AG-UI agent server (resolved via Aspire service discovery).
-// AG-UI responses are Server-Sent Event streams that stay open for the whole agent run, so the
-// standard resilience handler from ServiceDefaults is removed here: its 30 second total request
-// timeout cuts long runs short, and its retries would silently re-run the agent.
-#pragma warning disable EXTEXP0001 // RemoveAllResilienceHandlers is experimental.
-builder.Services.AddHttpClient("agentserver", client =>
-{
-    client.BaseAddress = new Uri("https+http://agentserver");
-    client.Timeout = Timeout.InfiniteTimeSpan;
-})
-.RemoveAllResilienceHandlers();
-#pragma warning restore EXTEXP0001
+var openai = builder.AddAzureOpenAIClient(connectionName: "chat")
+    .AddChatClient("chat");
 
-// Helper that turns an AG-UI endpoint on the agent server into an IChatClient / UIAgent.
-builder.Services.AddScoped<AgentServerConnection>();
+builder.Services.AddSingleton<AgentCatalog>(services =>
+{
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var chatClient = new ReasoningDisabledChatClient(services.GetRequiredService<IChatClient>());
+    var reasoningModel = configuration["CHAT_REASONING_MODEL"] ??
+        configuration["FOUNDRY_REASONING_MODEL"] ??
+        configuration["CHAT_MODELNAME"] ??
+        FoundryOptions.DefaultReasoningModel;
+
+    var reasoningChatClient = Foundry.CreateResponsesChatClient(
+        services.GetRequiredService<AzureOpenAIClient>(), reasoningModel);
+
+    return new AgentCatalog(chatClient, reasoningChatClient);
+});
+
+
+//builder.Services.AddSingleton<AgentCatalog>(services =>
+//{
+//    var configuration = services.GetRequiredService<IConfiguration>();
+//    var endpoint = configuration["CHAT_URI"];
+//    var deployment = configuration["CHAT_MODELNAME"];
+//    if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(deployment))
+//    {
+//        throw new InvalidOperationException(
+//            "Configure CHAT_URI and CHAT_MODELNAME on the Blazor host, or reference the Foundry chat deployment from Aspire.");
+//    }
+
+//    BearerTokenPolicy tokenPolicy = new(new DefaultAzureCredential(), "https://ai.azure.com/.default");
+//#pragma warning disable OPENAI001 // Preserve the existing Foundry bearer-authenticated OpenAI client.
+//    var client = new ChatClient(deployment, tokenPolicy,
+//        new OpenAIClientOptions { Endpoint = new Uri($"{endpoint}openai/v1/") });
+//#pragma warning restore OPENAI001
+//    var chatClient = client.AsIChatClient();
+//    return new AgentCatalog(chatClient, chatClient);
+//});
+
+builder.Services.AddScoped<LocalAgentConnection>();
+builder.Services.AddScoped<BackendMcpConnection>();
+// MCP POSTs execute tools, so never automatically replay them through HTTP resilience.
+#pragma warning disable EXTEXP0001 // Remove the shared defaults' resilience handler for the streaming MCP transport.
+builder.Services.AddHttpClient("backend-mcp", client => client.Timeout = Timeout.InfiniteTimeSpan)
+    .RemoveAllResilienceHandlers();
+#pragma warning restore EXTEXP0001
 
 var app = builder.Build();
 

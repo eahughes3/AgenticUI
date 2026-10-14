@@ -21,17 +21,19 @@ var resourceGroup = builder.AddParameter("foundryResourceGroup", "rg-avinosoft-a
 var foundry = builder.AddFoundry("aiFoundry")
     .AsExisting(foundryName, resourceGroup);
 
-var chat = foundry.AddDeployment("chat", FoundryModel.OpenAI.Gpt56Luna);
+var chat = foundry.AddDeployment("chat", "gpt-6-luna", "2026-09-22", "OpenAI");
 
-// The AG-UI agent server: hosts one AG-UI endpoint per demo scenario (MAF + AG-UI C# SDK).
-var agentServer = builder.AddProject<Projects.AgenticUI_AgentServer>("agentserver")
+var mcp = builder.AddProject<Projects.AgentiUI_McpServerApp>("mcpserver")
+    .WithEnvironment("Mcp__Transport", "http")
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+    .WithHttpsEndpoint()
+    .WithHttpHealthCheck("/health");
+
+// Blazor hosts the agents in-process and consumes the same Foundry deployment directly.
+builder.AddProject<Projects.AgenticUI_Web>("web")
+    .WithReference(mcp)
+    .WaitFor(mcp)
     .WithReference(chat)
     .WithReference(foundry);
-
-
-// The Blazor front end: consumes the AG-UI endpoints via the Blazor AI components.
-builder.AddProject<Projects.AgenticUI_Web>("web")
-    .WithReference(agentServer)
-    .WaitFor(agentServer);
 
 builder.Build().Run();

@@ -1,5 +1,5 @@
 @page "/frontend-tools"
-@inject AgentServerConnection Agents
+@inject LocalAgentConnection Agents
 @implements IDisposable
 
 <PageTitle>Frontend tools</PageTitle>
@@ -8,9 +8,9 @@
     <div class="scenario__intro">
         <h1>Frontend tools</h1>
         <p>
-            A <strong>client-side</strong> tool runs in the Blazor app, not on the agent server. We add
+            A <strong>page-owned</strong> tool runs in the originating Blazor circuit. We add
             <code>set_accent_color</code> to <code>ChatOptions.Tools</code>; the model calls it and the
-            AG-UI client executes it locally to restyle this page. Try:
+            native agent pipeline executes it locally to restyle this page. Try:
             <em>"Change the accent color to rebeccapurple."</em>
         </p>
     </div>
@@ -50,7 +50,7 @@
 
     protected override void OnInitialized()
     {
-        _chatClient = Agents.CreateChatClient("/tool_based_generative_ui");
+        _chatClient = Agents.CreateChatClient(AgentScenario.FrontendTools);
 
         var setAccentColor = AIFunctionFactory.Create(
             async (string color) =>
@@ -67,6 +67,7 @@
 
         _agent = new UIAgent(_chatClient, options =>
         {
+            options.Thread = new LocalConversationThread();
             options.ChatOptions = new ChatOptions { Tools = [setAccentColor] };
             options.AddGeneratedToolBlocks();
         });

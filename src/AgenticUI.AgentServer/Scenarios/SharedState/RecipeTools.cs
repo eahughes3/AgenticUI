@@ -4,9 +4,7 @@ namespace AgenticUI.AgentServer.Scenarios.SharedState;
 
 /// <summary>
 /// The backend tool the shared-state agent calls. It simply returns the recipe the model produced;
-/// the hosting layer turns that tool result into an AG-UI <c>STATE_SNAPSHOT</c> via
-/// <c>AGUIStreamOptions.MapResultAsStateSnapshot("generate_recipe")</c> — no custom agent or
-/// hand-built protocol content required.
+/// the local client projects that result into a <c>StateSnapshotEvent</c> for the Blazor state mapper.
 /// </summary>
 internal static class RecipeTools
 {

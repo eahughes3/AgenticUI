@@ -6,17 +6,15 @@ using AgenticUI.AgentServer.Scenarios.SharedState;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
-using OpenAI.Chat;
 
 namespace AgenticUI.AgentServer;
 
 /// <summary>
-/// Builds the <see cref="AIAgent"/> instances for each AG-UI demo scenario. Each agent is mapped to
-/// its own AG-UI endpoint in <c>Program.cs</c> via <c>MapAGUIServer</c>.
+/// Builds independent <see cref="AIAgent"/> instances for the in-process Blazor scenarios.
 /// </summary>
-public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningChatClient)
+public sealed class AgentCatalog(IChatClient chatClient, IChatClient reasoningChatClient)
 {
-    private readonly ChatClient _chatClient = chatClient;
+    private readonly IChatClient _chatClient = chatClient;
     private readonly IChatClient _reasoningChatClient = reasoningChatClient;
 
     /// <summary>Basic streaming chat — text in, streamed text out.</summary>
@@ -27,21 +25,36 @@ public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningCha
             instructions: "You are a helpful, friendly assistant. Keep answers concise.");
 
     /// <summary>Backend tool rendering — the server executes a <c>get_weather</c> tool.</summary>
-    public AIAgent CreateBackendToolRendering() =>
-        this._chatClient.AsAIAgent(
+    public AIAgent CreateBackendToolRendering(IEnumerable<AITool>? additionalTools = null)
+    {
+        List<AITool> tools = [AIFunctionFactory.Create(
+            GetWeather,
+            name: "get_weather",
+            description: "Get the weather for a given location.",
+            AgentServerSerializerContext.Default.Options)];
+        if (additionalTools is not null)
+        {
+            tools.AddRange(additionalTools);
+        }
+        var duplicate = tools.GroupBy(tool => tool.Name, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate is not null)
+        {
+            throw new InvalidOperationException($"Duplicate backend tool name '{duplicate.Key}'.");
+        }
+        return this._chatClient.AsAIAgent(
             name: "BackendToolRenderer",
-            description: "An agent that calls a backend weather tool.",
-            instructions: "You are a helpful assistant. Use the get_weather tool when asked about the weather.",
-            tools: [AIFunctionFactory.Create(
-                GetWeather,
-                name: "get_weather",
-                description: "Get the weather for a given location.",
-                AgentServerSerializerContext.Default.Options)]);
+            description: "An agent that calls backend weather and MCP tools.",
+            instructions: "You are a helpful assistant. Use get_weather when asked about weather. " +
+                "Use get_random_number when asked for a random number; never invent its result. " +
+                "Use the other available tools when appropriate.",
+            tools: tools);
+    }
 
     /// <summary>
     /// Human-in-the-loop. The agent exposes a tool wrapped in <see cref="ApprovalRequiredAIFunction"/>,
-    /// so calling it produces an AG-UI interrupt. The AG-UI client surfaces that as an approval request
-    /// which the Blazor AI components render with Approve/Reject buttons before the tool runs.
+    /// so calling it produces a native approval request which the Blazor AI components render
+    /// with Approve/Reject buttons before the tool runs.
     /// </summary>
     public AIAgent CreateHumanInTheLoop()
     {
@@ -118,8 +131,7 @@ public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningCha
             }
         });
 
-        // The create_plan / update_plan_step tool results are turned into STATE_SNAPSHOT / STATE_DELTA
-        // events declaratively via AGUIStreamOptions in Program.cs — no custom agent required.
+        // The local client projects these tool results into state snapshots and deltas.
         return baseAgent;
     }
 
@@ -217,12 +229,12 @@ public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningCha
                 // Reasoning summaries are opt-in. `ChatOptions.Reasoning` is the provider-neutral
                 // switch: the OpenAI client maps `Full` to the Responses API's detailed reasoning
                 // summary. MAF merges these agent-level options into every run, including runs
-                // that arrive over AG-UI.
+                // made through the local client.
                 Reasoning = new ReasoningOptions { Output = ReasoningOutput.Full }
             }
         });
 
-    /// <summary>[Test] A sequential workflow (researcher -> reporter) exposed as an AG-UI agent.</summary>
+    /// <summary>[Test] A sequential workflow (researcher -> reporter) run locally as an agent.</summary>
     public AIAgent CreateWorkflow()
     {
         AIAgent researcher = this._chatClient.AsAIAgent(

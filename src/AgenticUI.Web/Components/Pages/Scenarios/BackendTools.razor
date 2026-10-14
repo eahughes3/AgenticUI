@@ -1,6 +1,8 @@
 @page "/backend-tools"
-@inject AgentServerConnection Agents
-@implements IDisposable
+@inject LocalAgentConnection Agents
+@inject BackendMcpConnection Mcp
+@inject ILogger<BackendTools> Logger
+@implements IAsyncDisposable
 
 <PageTitle>Backend tools</PageTitle>
 
@@ -8,47 +10,131 @@
     <div class="scenario__intro">
         <h1>Backend tools</h1>
         <p>
-            The agent calls a <strong>server-side</strong> tool (<code>get_weather</code>). The tool
-            runs on the agent server; its call and result stream to the browser as AG-UI
-            <code>TOOL_CALL_*</code> events. Here a custom <code>&lt;BlockRenderer&gt;</code> turns the
-            <code>get_weather</code> invocation into a weather card instead of raw JSON.
+            The agent calls server-side tools: <code>get_weather</code> runs in Blazor,
+            and <code>get_random_number</code> runs in the MCP server and returns an integer
+            from 0 through 1000 inclusive. Their results appear in custom cards.
         </p>
     </div>
 
     <div class="scenario__chat">
-        <ChatPage Agent="_agent" Placeholder="Ask for the weather in a city…">
-            <MessageListContent>
-                <BlockRenderer TBlock="WeatherToolBlock">
-                    @{ var w = context.Weather ?? new WeatherInfo(); }
-                    <div class="weather-card">
-                        <div class="weather-card__icon">@(w.Conditions == "sunny" ? "☀️" : "🌤️")</div>
-                        <div class="weather-card__body">
-                            <div class="weather-card__location">@context.Location</div>
-                            <div class="weather-card__temp">@w.Temperature°C</div>
-                            <div class="weather-card__meta">
-                                @w.Conditions · feels like @w.FeelsLike°C · humidity @w.Humidity% · wind @w.WindSpeed km/h
+        @if (_error is not null)
+        {
+            <div role="alert">
+                <p>@_error</p>
+                <button class="btn btn-primary" @onclick="InitializeAsync">Retry connection</button>
+            </div>
+        }
+        else if (_agent is null)
+        {
+            <p role="status">Connecting to backend tools...</p>
+        }
+        else
+        {
+            <ChatPage Agent="_agent" Placeholder="Ask for weather or a random number...">
+                <MessageListContent>
+                    <BlockRenderer TBlock="RandomNumberToolBlock">
+                        <RandomNumberCard Block="context" />
+                    </BlockRenderer>
+                    <BlockRenderer TBlock="WeatherToolBlock">
+                        @{ var w = context.Weather ?? new WeatherInfo(); }
+                        <div class="weather-card">
+                            <div class="weather-card__icon">@(w.Conditions == "sunny" ? "☀️" : "🌤️")</div>
+                            <div class="weather-card__body">
+                                <div class="weather-card__location">@context.Location</div>
+                                <div class="weather-card__temp">@w.Temperature°C</div>
+                                <div class="weather-card__meta">
+                                    @w.Conditions · feels like @w.FeelsLike°C · humidity @w.Humidity% · wind @w.WindSpeed km/h
+                                </div>
+                                @if (!context.HasResult)
+                                {
+                                    <div class="weather-card__pending">Fetching weather…</div>
+                                }
                             </div>
-                            @if (!context.HasResult)
-                            {
-                                <div class="weather-card__pending">Fetching weather…</div>
-                            }
                         </div>
-                    </div>
-                </BlockRenderer>
-            </MessageListContent>
-        </ChatPage>
+                    </BlockRenderer>
+                </MessageListContent>
+            </ChatPage>
+        }
     </div>
 </div>
 
 @code {
-    private UIAgent _agent = default!;
-    private IChatClient _chatClient = default!;
+    private UIAgent? _agent;
+    private IChatClient? _chatClient;
+    private BackendMcpSession? _session;
+    private readonly CancellationTokenSource _lifetime = new();
+    private Task? _initialization;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _chatClient = Agents.CreateChatClient("/backend_tool_rendering");
-        _agent = new UIAgent(_chatClient, options => options.AddGeneratedToolBlocks());
+        if (firstRender)
+        {
+            await InitializeAsync();
+            if (!_lifetime.IsCancellationRequested)
+            {
+                StateHasChanged();
+            }
+        }
     }
 
-    public void Dispose() => (_chatClient as IDisposable)?.Dispose();
+    private Task InitializeAsync()
+    {
+        if (_initialization is { IsCompleted: false })
+        {
+            return _initialization;
+        }
+        _error = null;
+        return _initialization = ConnectAsync();
+    }
+
+    private async Task ConnectAsync()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        try
+        {
+            _session = await Mcp.ConnectAsync(timeout.Token);
+            timeout.Token.ThrowIfCancellationRequested();
+            _chatClient = Agents.CreateBackendToolsChatClient(_session.Tools);
+            _agent = new UIAgent(_chatClient, options =>
+            {
+                options.Thread = new LocalConversationThread();
+                options.AddGeneratedToolBlocks();
+            });
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            // Navigation canceled initialization; DisposeAsync releases the acquired resources.
+        }
+        catch (Exception exception) when (exception is HttpRequestException
+            or ModelContextProtocol.McpException or InvalidOperationException or OperationCanceledException)
+        {
+            Logger.LogError(exception, "Unable to initialize BackendTools MCP connection");
+            _error = "Unable to connect to the MCP tools. Check that the MCP server is running, then retry.";
+            (_chatClient as IDisposable)?.Dispose();
+            _chatClient = null;
+            if (_session is not null)
+            {
+                await _session.DisposeAsync();
+                _session = null;
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _lifetime.CancelAsync();
+        if (_initialization is not null)
+        {
+            await _initialization;
+        }
+        _agent?.Dispose();
+        (_chatClient as IDisposable)?.Dispose();
+        if (_session is not null)
+        {
+            await _session.DisposeAsync();
+        }
+        _lifetime.Dispose();
+    }
 }
